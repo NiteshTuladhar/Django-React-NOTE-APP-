@@ -7,6 +7,8 @@ from user.models import Collaborations, UserProfile
 from .models import *
 
 class NoteSerializer(serializers.ModelSerializer):
+    # user = UserSerializer(many=False)
+
     owner = serializers.SerializerMethodField()
     collaborators = serializers.SerializerMethodField()
     class Meta:
