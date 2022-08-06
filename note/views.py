@@ -13,6 +13,7 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
+from activitylog.mixins import ActivityLogMixins
 
 from note.filters import NoteFilter
 from note.permission import IsNoteOwner
@@ -24,78 +25,25 @@ from django.core.exceptions import PermissionDenied
 from .models import *
 from .serializers import *
 
-# Create your views here.
-# @api_view(['GET'])
-# def getNote(request):
-#     note = Note.objects.all()
 
-#     serializers = NoteSerializer(note, many=True)
-#     return Response(serializers.data)
-
-# @api_view(['GET'])
-# def getDetailNote(request, pk):
-#     note = Note.objects.get(id=pk)
-#     serializers = NoteSerializer(note, many= False)
-#     return Response(serializers.data)
-
-# @api_view(['POST'])
-# def createNote(request):
-#     note = Note.objects.create()
-#     data = request.data
-#     try:
-#         note.updated = data['updated']
-#         note.body = data['body']
-#         note.save()
-#         print(note.updated)
-#     except:
-#         pass
-#     serializers = NoteSerializer(note, many=False)
-#     return Response(serializers.data)
-
-# @api_view(['PUT'])
-# def updateNote(request, pk):
-#     data = request.data
-
-#     note = Note.objects.get(id = pk)
-#     try:
-#         note.updated = data['updated']
-#         note.body = data['body']
-#         note.save()
-#         print(note.updated)
-#     except:
-#         pass
-
-
-#     serializers = NoteSerializer(note, many= False)
-#     return Response(serializers.data)
-
-# @api_view(['DELETE'])
-# def deleteNote(request, pk):
-#     note = Note.objects.get(id=pk)
-
-#     note.delete()
-
-#     return Response('Deleted.')
-
-
-class MyNotesListView(generics.ListCreateAPIView):
+class MyNotesListView(ActivityLogMixins, generics.ListCreateAPIView):
 
     queryset = Note.objects.all()
     serializer_class = NoteSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['body', ]
     ordering_fields = ['updated', ]
-    authentication_classes = [JWTAuthentication,]
+    authentication_classes = [JWTAuthentication, ]
     permission_classes = [IsAuthenticated, ]
 
     def get_queryset(self):
-        return super().get_queryset().filter(Q(user=self.request.user) | Q(collaborations__collaborators=self.request.user))
+        return super().get_queryset().filter(Q(user=self.request.user) | Q(collaborations__collaborators=self.request.user)).distinct()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
-class MyNotesDetailView(generics.RetrieveUpdateDestroyAPIView):
+class MyNotesDetailView(ActivityLogMixins, generics.RetrieveUpdateDestroyAPIView):
 
     queryset = Note.objects.all()
     serializer_class = NoteSerializer
@@ -122,6 +70,11 @@ class MyNotesDetailView(generics.RetrieveUpdateDestroyAPIView):
         self.check_object_permissions(self, self.get_object())
 
         serializer.save(updated=datetime.datetime.now())
+
+    def perform_destroy(self, instance):
+
+        self.check_object_permissions(self, self.get_object())
+        return super().perform_destroy(instance)
 
     def check_object_permissions(self, request, obj):
         """
