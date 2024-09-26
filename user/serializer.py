@@ -19,22 +19,6 @@ class UserCreateSerializer(UserCreateSerializer):
         fields = ('id',  'email', 'username', 'password')
 
 
-# Resgister Serializations
-
-
-class RegisterSerializations(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('email', 'password')
-        extra_kwargs = {
-            'password': {'write_only': True},
-        }
-
-    def create(self, validated_data):
-        return User.objects.create(username=validated_data['email'], email=validated_data['email'], password=make_password(validated_data['password']))
-
-
 # USER SERIALIZATION GET
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,12 +74,8 @@ class CreateCollaborationSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    username = serializers.SerializerMethodField()
+    user = UserSerializer()
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'isfirst_login', 'imageURL']
-
-    def get_username(self, data):
-        return data.user.username
-
+        fields = ['id', 'user', 'isfirst_login', 'profile_pic']
